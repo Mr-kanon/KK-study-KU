@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>乗せます掲示板</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { text-align: center; }
+        form { margin-bottom: 20px; }
+        .post { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; border-radius: 8px; }
+        .comment { margin-left: 20px; margin-top: 10px; padding-left: 10px; border-left: 2px solid #ddd; }
+        .comment-form { margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h1>🚙 乗せます掲示板</h1>
+    <a href="index.html">← トップに戻る</a>
+
+    <form id="postForm">
+        <input type="text" id="nickname" placeholder="ニックネーム" required><br><br>
+        <input type="text" id="departure" placeholder="出発地" required><br><br>
+        <input type="text" id="via" placeholder="経由地（任意）"><br><br>
+        <input type="text" id="destination" placeholder="目的地" required><br><br>
+        <input type="text" id="time" placeholder="出発予定時間" required><br><br>
+        <input type="number" id="capacity" placeholder="同乗可能人数" required><br><br>
+        <textarea id="comment" placeholder="コメント（任意）"></textarea><br><br>
+        <button type="submit">投稿する</button>
+    </form>
+
+    <div id="posts"></div>
+
+    <script>
+        const form = document.getElementById('postForm');
+        const posts = document.getElementById('posts');
+
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const nickname = document.getElementById('nickname').value;
+            const departure = document.getElementById('departure').value;
+            const via = document.getElementById('via').value;
+            const destination = document.getElementById('destination').value;
+            const time = document.getElementById('time').value;
+            const capacity = document.getElementById('capacity').value;
+            const comment = document.getElementById('comment').value;
+
+            const post = document.createElement('div');
+            post.className = 'post';
+            post.innerHTML = `<strong>${nickname}</strong><br>
+                               出発地: ${departure}<br>
+                               経由地: ${via}<br>
+                               目的地: ${destination}<br>
+                               出発予定時間: ${time}<br>
+                               同乗可能人数: ${capacity}人<br>
+                               コメント: ${comment}<br><br>
+                               <div class="comments"></div>
+                               <div class="comment-form">
+                                   <input type="text" placeholder="コメントを書く" class="comment-input">
+                                   <button class="comment-button">送信</button>
+                               </div>`;
+
+            const commentButton = post.querySelector('.comment-button');
+            commentButton.addEventListener('click', function() {
+                const commentInput = post.querySelector('.comment-input');
+                const commentText = commentInput.value.trim();
+                if (commentText !== "") {
+                    const commentDiv = document.createElement('div');
+                    commentDiv.className = 'comment';
+                    commentDiv.textContent = commentText;
+                    post.querySelector('.comments').appendChild(commentDiv);
+                    commentInput.value = '';
+                }
+            });
+
+            posts.prepend(post);
+
+            form.reset();
+        });
+    </script>
+</body>
+</html>

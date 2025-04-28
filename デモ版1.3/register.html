@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>高知大学生専用 登録フォーム</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    input, button { margin: 10px 0; padding: 10px; width: 300px; }
+    #otpSection { display: none; margin-top: 30px; }
+  </style>
+</head>
+<body>
+
+  <h1>高知大学生専用 登録フォーム</h1>
+
+  <div id="registerSection">
+    <input type="text" id="faculty" placeholder="学部"><br>
+    <input type="text" id="studentId" placeholder="学籍番号"><br>
+    <input type="email" id="email" placeholder="大学メールアドレス"><br>
+    <button onclick="sendOTP()">認証コードを送る</button>
+  </div>
+
+  <div id="otpSection">
+    <input type="text" id="otp" placeholder="届いた認証コードを入力"><br>
+    <button onclick="verifyOTP()">認証する</button>
+  </div>
+
+  <div id="result"></div>
+
+  <script>
+    function sendOTP() {
+      const email = document.getElementById('email').value;
+
+      // メールアドレスチェック（@kochi-u.ac.jp または @s.kochi-u.ac.jp を許可）
+      if (!(email.endsWith('@kochi-u.ac.jp') || email.endsWith('@s.kochi-u.ac.jp'))) {
+        alert('大学メールアドレス（@kochi-u.ac.jp または @s.kochi-u.ac.jp）を入力してください');
+        return;
+      }
+
+      fetch('http://localhost:3000/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      })
+      .then(response => response.text())
+      .then(data => {
+        document.getElementById('registerSection').style.display = 'none';
+        document.getElementById('otpSection').style.display = 'block';
+        alert('認証コードを送信しました。メールを確認してください！');
+      })
+      .catch(error => {
+        console.error('エラー:', error);
+        alert('認証コード送信に失敗しました');
+      });
+    }
+
+    function verifyOTP() {
+      const email = document.getElementById('email').value;
+      const otp = document.getElementById('otp').value;
+
+      fetch('http://localhost:3000/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp })
+      })
+      .then(response => {
+        if (response.ok) {
+          return response.text();
+        } else {
+          throw new Error('認証失敗');
+        }
+      })
+    .then(data => {
+  localStorage.setItem('authenticated', 'true');
+  window.location.href = 'index.html'; // ★ここはindex.htmlに飛ばす！！
+})
+
+      .catch(error => {
+        console.error('エラー:', error);
+        document.getElementById('result').innerHTML = '<h2 style="color:red;">認証失敗！</h2>';
+      });
+    }
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>スレッド詳細</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    textarea, input, button { margin-top: 10px; width: 300px; padding: 8px; }
+    .reply { margin-top: 20px; padding: 10px; border-top: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+
+  <h1>スレッド詳細</h1>
+
+  <div id="thread"></div>
+
+  <h2>返信を書く</h2>
+  <input type="text" id="replyHandleName" placeholder="ハンドルネーム（空白なら名無しさん）"><br>
+  <textarea id="replyContent" rows="4" placeholder="返信内容"></textarea><br>
+  <button onclick="postReply()">返信する</button>
+
+  <h2>返信一覧</h2>
+  <div id="replies"></div>
+
+  <script>
+    function searchThreads() {
+  const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+
+  fetch('http://localhost:3000/get-threads')
+    .then(response => response.json())
+    .then(threads => {
+      const threadsDiv = document.getElementById('threads');
+      threadsDiv.innerHTML = '';
+
+      // ★ここで検索キーワードに一致するスレッドだけ表示
+      const filteredThreads = threads.filter(thread =>
+        thread.title.toLowerCase().includes(keyword) ||
+        thread.content.toLowerCase().includes(keyword)
+      );
+
+      filteredThreads.forEach(thread => {
+        const div = document.createElement('div');
+        div.className = 'thread';
+        div.innerHTML = `
+          <h3><a href="thread.html?id=${thread.id}">${thread.title}</a></h3>
+          <p>${thread.content}</p>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <small>投稿者: ${thread.handleName}</small>
+            <small>ID: ${thread.userId}</small>
+            <small>投稿日: ${new Date(thread.createdAt).toLocaleString()}</small>
+          </div>
+        `;
+        threadsDiv.appendChild(div);
+      });
+
+      if (filteredThreads.length === 0) {
+        threadsDiv.innerHTML = '<p>検索結果がありませんでした。</p>';
+      }
+    })
+    .catch(error => {
+      console.error('エラー:', error);
+    });
+}
+
+    const params = new URLSearchParams(window.location.search);
+    const threadId = params.get('id');
+
+function loadThread() {
+  fetch(`http://localhost:3000/get-thread/${threadId}`)
+    .then(response => {
+      if (!response.ok) throw new Error('スレッドが見つかりません');
+      return response.json();
+    })
+    .then(thread => {
+      document.getElementById('thread').innerHTML = `
+        <h2>${thread.title}</h2>
+        <p>${thread.content}</p>
+        <small>投稿者: ${thread.handleName}（ID: ${thread.userId}）</small><br>
+        <small>投稿日: ${new Date(thread.createdAt).toLocaleString()}</small>
+      `;
+
+      // ★返信一覧も表示
+      const repliesDiv = document.getElementById('replies');
+      repliesDiv.innerHTML = '';
+      if (thread.replies) {
+        const sortedReplies = [...thread.replies].sort((a, b) => new Date(b.replyCreatedAt) - new Date(a.replyCreatedAt));
+        sortedReplies.forEach(reply => {
+          const div = document.createElement('div');
+          div.className = 'reply';
+          div.innerHTML = `
+            <p>${reply.replyContent}</p>
+            <small>投稿者: ${reply.replyHandleName}（ID: ${reply.replyUserId}）</small><br>
+            <small>投稿日: ${new Date(reply.replyCreatedAt).toLocaleString()}</small>
+          `;
+          repliesDiv.appendChild(div);
+        });
+      }
+    })
+    .catch(error => {
+      document.getElementById('thread').innerText = 'スレッドが見つかりませんでした。';
+    });
+}
+
+
+    function postReply() {
+      const replyHandleName = document.getElementById('replyHandleName').value;
+      const replyContent = document.getElementById('replyContent').value;
+
+      if (!replyContent.trim()) {
+        alert('返信内容を入力してください');
+        return;
+      }
+
+      fetch('http://localhost:3000/post-reply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ threadId, replyContent, replyHandleName })
+      })
+      .then(response => response.text())
+      .then(data => {
+        alert('返信を投稿しました！');
+        document.getElementById('replyContent').value = '';
+        loadThread(); // 返信したら一覧リロード
+      })
+      .catch(error => {
+        console.error('エラー:', error);
+      });
+    }
+
+    // 最初にスレッド読み込む
+    if (threadId) {
+      loadThread();
+    } else {
+      document.getElementById('thread').innerText = 'スレッドIDが指定されていません。';
+    }
+  </script>
+
+</body>
+</html>

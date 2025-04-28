@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>雑談掲示板</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    input, textarea, button { margin: 8px 0; padding: 8px; width: 300px; }
+    .thread { margin-top: 20px; padding: 10px; border: 1px solid #ccc; }
+  </style>
+
+  <script>
+    if (localStorage.getItem('authenticated') !== 'true') {
+      window.location.href = 'login.html';
+    }
+  </script>
+</head>
+
+<body>
+
+  <h1>雑談掲示板</h1>
+  <h2>スレッド検索
+    　<input type="text" id="searchInput" placeholder="キーワードを入力" style="width:600px;    padding:10px;"><button onclick="searchThreads()">検索</button></h2>
+  
+  <div>
+    <input type="text" id="title" placeholder="スレッドタイトル"><br>
+    <input type="text" id="handleName" value="名無しさん" placeholder="ハンドルネーム"><br>
+    <textarea id="content" rows="4" placeholder="本文"></textarea><br>
+    <button onclick="postThread()">スレッドを立てる</button>
+  </div>
+
+  <h2>スレッド一覧</h2>
+  <div id="threads"></div>
+
+  <script>
+function postThread() {
+  // ここを一番最初に追加！！
+  if (localStorage.getItem('authenticated') !== 'true') {
+    alert('先に認証を完了してください！');
+    return; // 投稿を中断する
+  }
+
+  // ↓ここから下は今までのスレッド投稿処理（titleやcontentを取得してfetch送る部分）
+  const title = document.getElementById('title').value;
+  const handleName = document.getElementById('handleName').value;
+  const content = document.getElementById('content').value;
+
+  fetch('http://localhost:3000/post-thread', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title, content, handleName })
+  })
+  .then(response => response.text())
+  .then(data => {
+    alert('スレッドを立てました！');
+    loadThreads();
+  })
+  .catch(error => {
+    console.error('エラー:', error);
+  });
+}
+
+function searchThreads() {
+  const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+
+  if (keyword === '') {
+    // ★キーワードが空なら、全スレッド表示
+    loadThreads();
+    return;
+  }
+
+  fetch('http://localhost:3000/get-threads')
+    .then(response => response.json())
+    .then(threads => {
+      const threadsDiv = document.getElementById('threads');
+      threadsDiv.innerHTML = '';
+
+      const filteredThreads = threads.filter(thread =>
+        thread.title.toLowerCase().includes(keyword) ||
+        thread.content.toLowerCase().includes(keyword)
+      );
+
+      filteredThreads.forEach(thread => {
+        const div = document.createElement('div');
+        div.className = 'thread';
+        div.innerHTML = `
+          <h3><a href="thread.html?id=${thread.id}">${thread.title}</a></h3>
+          <p>${thread.content}</p>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <small>投稿者: ${thread.handleName}</small>
+            <small>ID: ${thread.userId}</small>
+            <small>投稿日: ${new Date(thread.createdAt).toLocaleString()}</small>
+          </div>
+        `;
+        threadsDiv.appendChild(div);
+      });
+
+      if (filteredThreads.length === 0) {
+        threadsDiv.innerHTML = '<p>検索結果がありませんでした。</p>';
+      }
+    })
+    .catch(error => {
+      console.error('エラー:', error);
+    });
+}
+
+
+function loadThreads() {
+  fetch('http://localhost:3000/get-threads')
+    .then(response => response.json())
+    .then(threads => {
+      const threadsDiv = document.getElementById('threads');
+      threadsDiv.innerHTML = '';
+      threads.forEach(thread => {
+        const div = document.createElement('div');
+        div.className = 'thread';
+        div.innerHTML = `
+  <h3><a href="thread.html?id=${thread.id}">${thread.title}</a></h3>
+  <p>${thread.content}</p>
+  <div style="display:flex; gap:10px; align-items:center;">
+    <small>投稿者: ${thread.handleName}</small>
+    <small>ID: ${thread.userId}</small>
+    <small>投稿日: ${new Date(thread.createdAt).toLocaleString()}</small>
+  </div>
+`;
+        threadsDiv.appendChild(div);
+      });
+    });
+}
+
+
+
+    // ページ読み込み時にスレッド一覧を表示
+    window.onload = loadThreads;
+  </script>
+
+</body>
+</html>
